@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "OAO/contracts/interfaces/IAIOracle.sol";
+import "OAO/contracts/IAIOracle.sol";
 import "OAO/contracts/AIOracleCallbackReceiver.sol";
 
 contract Prompt is AIOracleCallbackReceiver {
-    event promptsUpdated(uint256 requestId, uint256 modelId, string input, string output, bytes callbackData);
-
-    event promptRequest(uint256 requestId, address sender, uint256 modelId, string prompt);
+    event promptsUpdated(bytes32 requestId, string output);
+    event promptRequest(address sender, uint256 modelId, string prompt);
 
     struct AIOracleRequest {
         address sender;
@@ -16,60 +15,64 @@ contract Prompt is AIOracleCallbackReceiver {
         bytes output;
     }
 
-    address owner;
+    mapping(bytes32 => AIOracleRequest) public requests;
+    mapping(bytes32 => string) public prompts;
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner");
-        _;
-    }
+    constructor(IAIOracle _aiOracle) AIOracleCallbackReceiver(_aiOracle) {}
 
-    mapping(uint256 => AIOracleRequest) public requests;
+    uint64 private constant AIORACLE_CALLBACK_GAS_LIMIT = 5000000;
 
-    mapping(uint256 => uint64) public callbackGasLimit;
-
-    constructor(IAIOracle _aiOracle) AIOracleCallbackReceiver(_aiOracle) {
-        owner = msg.sender;
-        callbackGasLimit[50] = 500_000; // Stable-Diffusion
-        callbackGasLimit[11] = 5_000_000; // Llama
-    }
-
-    function setCallbackGasLimit(uint256 modelId, uint64 gasLimit) external onlyOwner {
-        callbackGasLimit[modelId] = gasLimit;
-    }
-
-    mapping(uint256 => mapping(string => string)) public prompts;
-
-    function getAIResult(uint256 modelId, string calldata prompt) external view returns (string memory) {
-        return prompts[modelId][prompt];
-    }
-
-    function aiOracleCallback(uint256 requestId, bytes calldata output, bytes calldata callbackData)
-        external
-        override
-        onlyAIOracleCallback
-    {
-        AIOracleRequest storage request = requests[requestId];
-        require(request.sender != address(0), "request does not exist");
-        request.output = output;
-        prompts[request.modelId][string(request.input)] = string(output);
-        emit promptsUpdated(requestId, request.modelId, string(request.input), string(output), callbackData);
-    }
-
-    function estimateFee(uint256 modelId) public view returns (uint256) {
-        return aiOracle.estimateFee(modelId, callbackGasLimit[modelId]);
-    }
-
-    function calculateAIResult(uint256 modelId, string calldata prompt) external payable {
+    /**
+     * @notice Requests AI results from the OAO AI Oracle asynchronously.
+     * The Oracle will call the `aiOracleCallback` function upon completion.
+     * @param modelId The ID of the AI model to use.
+     * @param prompt The input prompt string for the AI model.
+     * @return requestId A unique identifier for the AI request generated using the model ID and prompt.
+     */
+    function calculateAIResult(uint256 modelId, string calldata prompt) external payable returns (bytes32 requestId) {
         bytes memory input = bytes(prompt);
-        bytes memory callbackData = bytes("");
         address callbackAddress = address(this);
-        uint256 requestId = aiOracle.requestCallback{value: msg.value}(
-            modelId, input, callbackAddress, callbackGasLimit[modelId], callbackData
+        aiOracle.requestCallback{value: msg.value}(
+            modelId, input, callbackAddress, this.aiOracleCallback.selector, AIORACLE_CALLBACK_GAS_LIMIT
         );
+        requestId = this.getRequestId(modelId, prompt);
         AIOracleRequest storage request = requests[requestId];
         request.input = input;
         request.sender = msg.sender;
         request.modelId = modelId;
-        emit promptRequest(requestId, msg.sender, modelId, prompt);
+        emit promptRequest(msg.sender, modelId, prompt);
+    }
+
+    /**
+     * @notice Retrieves the AI result from the prompts state mapping.
+     * @param requestId A unique identifier for the AI request generated using the model ID and prompt.
+     * @return result The AI-generated output string corresponding to the input prompt.
+     */
+    function getAIResult(bytes32 requestId) external view returns (string memory result) {
+        return prompts[requestId];
+    }
+
+    /**
+     * @notice Callback function called by the OAO AI Oracle with the AI result.
+     * Stores the Oracle's response in the prompts state mapping.
+     * @dev This function is only callable by the authorized AI Oracle.
+     * @param modelId The ID of the AI model used in the request.
+     * @param input The input data bytes that were sent to the AI model.
+     * @param output The output data bytes returned by the AI model.
+     */
+    function aiOracleCallback(uint256 modelId, bytes calldata input, bytes calldata output)
+        external
+        onlyAIOracleCallback
+    {
+        bytes32 requestId = this.getRequestId(modelId, string(input));
+        AIOracleRequest storage request = requests[requestId];
+        require(request.sender != address(0), "request does not exist");
+        request.output = output;
+        prompts[requestId] = string(output);
+        emit promptsUpdated(requestId, string(output));
+    }
+
+    function getRequestId(uint256 modelId, string calldata prompt) public pure returns (bytes32) {
+        return keccak256(abi.encodePacked(modelId, prompt));
     }
 }
