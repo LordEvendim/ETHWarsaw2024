@@ -1,7 +1,9 @@
 import { CronJob } from "cron";
 
-import { scrapper } from "./scrapper/scrapper";
-import { FORUM_URLS } from "./scrapper/forums";
+import { scrapper } from "../scrapper/scrapper";
+import { FORUM_URLS } from "../scrapper/forums";
+import { interactor } from "../interactor/interactor";
+import { oracle } from "../oracles/oracle";
 
 const jobs = {
   pushForumData: () => {},
@@ -17,7 +19,10 @@ class Scheduler {
       new CronJob(
         "0 0 * * *",
         async () => {
-          await scrapper.scrapeMantleLikeThread(FORUM_URLS.mantle.sampleThread);
+          const threadId = FORUM_URLS.mantle.sampleThread;
+
+          await scrapper.scrapeMantleLikeThread(threadId);
+          await oracle.pushDataToOracle(threadId);
         },
         null,
         true

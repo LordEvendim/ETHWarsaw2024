@@ -2,7 +2,7 @@ import express, { Application } from "express";
 
 import { experimentingRouter } from "./router/experimentingRouter";
 import { endpointLogging } from "./middleware/endpointLogging";
-import { scheduler } from "./modules/scheduler";
+import { scheduler } from "./modules/scheduler/scheduler";
 import cors from "./config/cors";
 
 const app: Application = express();
