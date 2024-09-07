@@ -1,4 +1,5 @@
 import puppeteer from "puppeteer";
+import { db } from "../../db/postgres";
 
 interface MantleMessage {
   user: string;
@@ -34,6 +35,15 @@ class Scrapper {
         };
       });
     });
+
+    for (let i = 0; i < messages.length; i++) {
+      await db`
+      insert into threads (thread, data, upvotes, username) 
+      values (${url}, ${messages[i].content}, ${messages[i].upvotes}, ${messages[i].user})
+
+      returning *
+      `;
+    }
 
     return messages;
   }

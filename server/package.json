@@ -7,6 +7,7 @@
     "cors": "^2.8.5",
     "cron": "^3.1.7",
     "dotenv": "^16.4.5",
+    "ethers": "^6.13.2",
     "express": "^4.19.2",
     "postgres": "^3.4.4",
     "puppeteer": "^23.3.0",
