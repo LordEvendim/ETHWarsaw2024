@@ -1,5 +1,3 @@
-import { ethers } from "ethers";
-import crypto from "crypto";
 import { generateRandomAddress } from "../../utils/address";
 
 const userAddresses = new Map();

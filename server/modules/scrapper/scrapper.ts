@@ -1,5 +1,6 @@
 import puppeteer from "puppeteer";
 import { db } from "../../db/postgres";
+import { mantle } from "../mantle/mantle";
 
 interface MantleMessage {
   user: string;
@@ -36,16 +37,22 @@ class Scrapper {
       });
     });
 
-    for (let i = 0; i < messages.length; i++) {
+    const transformedMessages = messages.map((message) => ({
+      ...message,
+      content: message.content.replace(/(\r\n|\n|\r)/gm, "").trim(),
+      user: mantle.getAddressFromUsername(message.user) as string,
+    }));
+
+    for (let i = 0; i < transformedMessages.length; i++) {
       await db`
       insert into threads (thread, data, upvotes, username) 
-      values (${url}, ${messages[i].content}, ${messages[i].upvotes}, ${messages[i].user})
+      values (${url}, ${transformedMessages[i].content}, ${transformedMessages[i].upvotes}, ${transformedMessages[i].user})
 
       returning *
       `;
     }
 
-    return messages;
+    return transformedMessages;
   }
 }
 
