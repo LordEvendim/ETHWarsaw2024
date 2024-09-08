@@ -7,8 +7,8 @@ class Interactor {
 
   constructor() {
     this.privateKey = process.env.INTERACTOR_PRIVATE_KEY;
-    this.signer = new ethers.Wallet(this.privateKey, this.provider);
     this.provider = new ethers.JsonRpcProvider(process.env.JSON_PROVIDER_KEY);
+    this.signer = new ethers.Wallet(this.privateKey, this.provider);
   }
 }
 

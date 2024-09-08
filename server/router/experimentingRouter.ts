@@ -18,7 +18,7 @@ router.get("/", async (req: Request, res: Response) => {
 
     const threadId = FORUM_URLS.mantle.sampleThread;
 
-    await scrapper.scrapeMantleLikeThread(threadId);
+    // await scrapper.scrapeMantleLikeThread(threadId);
     const data = await oracle.pushDataToOracle(threadId);
 
     res.send(data);

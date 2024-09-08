@@ -1,4 +1,4 @@
-import { Contract, keccak256, toUtf8Bytes } from "ethers";
+import { Contract, ethers, keccak256, toUtf8Bytes } from "ethers";
 import { FORUM_ORACLE_ADDRESS } from "../contracts/addresses";
 import ForumOracle from "../contracts/ForumOracle.json";
 import { interactor } from "../interactor/interactor";
@@ -24,7 +24,7 @@ class Oracle {
     }[];
 
     await forumOracle.pushThreadData(
-      keccak256(toUtf8Bytes(threadId)),
+      ethers.toBigInt(toUtf8Bytes(threadId)).toString(),
       JSON.stringify(threadData)
     );
   }
