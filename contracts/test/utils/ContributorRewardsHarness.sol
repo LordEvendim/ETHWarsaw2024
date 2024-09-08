@@ -11,7 +11,7 @@ contract ContributorRewardsHarness is ContributorRewards {
     function exposed_extractAddresses(string memory result)
         external
         pure
-        returns (string[] memory addresses, uint256 count)
+        returns (address[] memory addresses, uint256 count)
     {
         return extractAddresses(result);
     }
