@@ -12,9 +12,14 @@ router.get("/", async (req: Request, res: Response) => {
     //   FORUM_URLS.mantle.sampleThread
     // );
 
-    const data = await oracle.pushDataToOracle(
-      "https://forum.mantle.xyz/t/feedback-digital-space-in-the-maia-model/8888"
-    );
+    // const data = await oracle.pushDataToOracle(
+    //   "https://forum.mantle.xyz/t/feedback-digital-space-in-the-maia-model/8888"
+    // );
+
+    const threadId = FORUM_URLS.mantle.sampleThread;
+
+    await scrapper.scrapeMantleLikeThread(threadId);
+    const data = await oracle.pushDataToOracle(threadId);
 
     res.send(data);
   } catch (error: unknown) {
