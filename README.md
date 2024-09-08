@@ -10,3 +10,7 @@ Doing it this way gives users a verifiable and fair judgment to pick and reward 
 ## Architecture
 
 ![architecture](./arch.png)
+
+## Roadmap
+
+![roadmap](./roadmap.png)
