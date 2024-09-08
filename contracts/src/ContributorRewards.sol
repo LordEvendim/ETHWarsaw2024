@@ -8,6 +8,7 @@ import "../src/ForumOracle.sol";
 import "../src/utils/AddressUtils.sol";
 import "../src/utils/ENSResolver.sol";
 import "solidity-stringutils/strings.sol";
+import "forge-std/console.sol";
 
 contract ContributorRewards is ERC20 {
     using strings for *;
@@ -16,8 +17,8 @@ contract ContributorRewards is ERC20 {
     string basePrompt =
         "Act as an objective judge. Your task is to evaluate users' contributions to the forum discussion provided in the Data section. Criteria: relevance, originality, and quality, with an emphasis on quality over quantity. Provide as output 5 unique user addresses that you believe deserve rewards. Return only the addresses, separated by spaces, and nothing else. Example: 0x123 0x456 0x789 0xabc 0xdef | Data:";
 
-    Prompt prompt;
-    ForumOracle forumOracle;
+    Prompt public prompt;
+    IForumOracle forumOracle;
     IENSResolver ensResolver;
 
     uint256 immutable aiOracleModelId = 11;
@@ -25,10 +26,10 @@ contract ContributorRewards is ERC20 {
     mapping(uint256 => bool) public rewardedThreads;
     mapping(uint256 => bytes32) public threadRequests;
 
-    constructor(IAIOracle _aiOracle, ForumOracle _forumOracle, IENSResolver _ensResolver)
+    constructor(Prompt _prompt, IForumOracle _forumOracle, IENSResolver _ensResolver)
         ERC20("Contributor Rewards Token", "CRT", 18)
     {
-        prompt = new Prompt(_aiOracle);
+        prompt = _prompt;
         forumOracle = _forumOracle;
         ensResolver = _ensResolver;
     }
@@ -46,6 +47,7 @@ contract ContributorRewards is ERC20 {
         require(!rewardedThreads[threadId], "Thread already rewarded");
         bytes32 requestId = threadRequests[threadId];
         string memory result = prompt.getAIResult(requestId);
+        console.log(result);
         if (bytes(result).length == 0) {
             return;
         }

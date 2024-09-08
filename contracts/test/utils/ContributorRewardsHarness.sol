@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import "../../src/Prompt.sol";
 import "../../src/ContributorRewards.sol";
-import "OAO/contracts/IAIOracle.sol";
 import "../../src/utils/ENSResolver.sol";
 
 // A contract to expose internal functions for testing
 contract ContributorRewardsHarness is ContributorRewards {
-    constructor(IAIOracle _aiOracle, ForumOracle _forumOracle, IENSResolver _ensResolver)
-        ContributorRewards(_aiOracle, _forumOracle, _ensResolver)
+    constructor(Prompt _prompt, IForumOracle _forumOracle, IENSResolver _ensResolver)
+        ContributorRewards(_prompt, _forumOracle, _ensResolver)
     {}
 
     function exposed_extractAddresses(string memory result)
