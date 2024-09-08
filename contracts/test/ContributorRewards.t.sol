@@ -7,6 +7,7 @@ import "OAO/contracts/AIOracle.sol";
 import "../src/ForumOracle.sol";
 import "../test/utils/MockOpml.sol";
 import "../test/utils/ContributorRewardsHarness.sol";
+import "../test/utils/MockENSResolver.sol";
 import "forge-std/console.sol";
 
 contract ContributorRewardsText is Test {
@@ -14,7 +15,7 @@ contract ContributorRewardsText is Test {
 
     function setUp() public {
         IAIOracle aiOracle = new AIOracle(0.001 ether, new MockOpml());
-        cr = new ContributorRewardsHarness(aiOracle, new ForumOracle());
+        cr = new ContributorRewardsHarness(aiOracle, new ForumOracle(), new MockENSResolver());
     }
 
     function test_constructor() public view {
@@ -34,7 +35,7 @@ contract ContributorRewardsText is Test {
         assertEq(addresses[0], 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
         assertEq(addresses[1], 0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
         assertEq(addresses[2], 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
-        // assertEq(addresses[3], "vitalik.eth");  -- ENS not supported yet
+        assertEq(addresses[3], 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045);
         assertEq(addresses[4], 0x90F79bf6EB2c4f870365E785982E1f101E93b906);
     }
 
@@ -49,7 +50,21 @@ contract ContributorRewardsText is Test {
         assertEq(addresses[0], 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
         assertEq(addresses[1], 0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
         assertEq(addresses[2], 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
-        // assertEq(addresses[3], "vitalik.eth");  -- ENS not supported yet
+        assertEq(addresses[3], 0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045);
         assertEq(addresses[4], 0x90F79bf6EB2c4f870365E785982E1f101E93b906);
+    }
+
+    function test_unknownENSSkipped() public view {
+        string memory result =
+            "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC unknown.eth 0x90F79bf6EB2c4f870365E785982E1f101E93b906";
+        (address[] memory addresses, uint256 count) = cr.exposed_extractAddresses(result);
+        for (uint256 i = 0; i < count; i++) {
+            console.log(addresses[i]);
+        }
+        assertEq(count, 4);
+        assertEq(addresses[0], 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        assertEq(addresses[1], 0x70997970C51812dc3A010C7d01b50e0d17dc79C8);
+        assertEq(addresses[2], 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
+        assertEq(addresses[3], 0x90F79bf6EB2c4f870365E785982E1f101E93b906);
     }
 }

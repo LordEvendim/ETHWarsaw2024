@@ -6,6 +6,7 @@ import "OAO/contracts/IAIOracle.sol";
 import "../src/Prompt.sol";
 import "../src/ForumOracle.sol";
 import "../src/utils/AddressUtils.sol";
+import "../src/utils/ENSResolver.sol";
 import "solidity-stringutils/strings.sol";
 
 contract ContributorRewards is ERC20 {
@@ -17,15 +18,19 @@ contract ContributorRewards is ERC20 {
 
     Prompt prompt;
     ForumOracle forumOracle;
+    IENSResolver ensResolver;
 
     uint256 immutable aiOracleModelId = 11;
 
     mapping(uint256 => bool) public rewardedThreads;
     mapping(uint256 => bytes32) public threadRequests;
 
-    constructor(IAIOracle _aiOracle, ForumOracle _forumOracle) ERC20("Contributor Rewards Token", "CRT", 18) {
+    constructor(IAIOracle _aiOracle, ForumOracle _forumOracle, IENSResolver _ensResolver)
+        ERC20("Contributor Rewards Token", "CRT", 18)
+    {
         prompt = new Prompt(_aiOracle);
         forumOracle = _forumOracle;
+        ensResolver = _ensResolver;
     }
 
     function calculateThreadRewards(uint256 threadId) external payable {
@@ -55,7 +60,7 @@ contract ContributorRewards is ERC20 {
     // splits output on spaces, then it checks each word, a word is consiered a valid address if
     //     a) it starts with 0x
     //     b) it ends with .eth
-    function extractAddresses(string memory result) internal pure returns (address[] memory addresses, uint256 count) {
+    function extractAddresses(string memory result) internal view returns (address[] memory addresses, uint256 count) {
         strings.slice memory s = result.toSlice();
         strings.slice memory delim = " ".toSlice();
         uint256 allWordsCount = s.count(delim) + 1;
@@ -67,9 +72,12 @@ contract ContributorRewards is ERC20 {
                 fullSizedAddressesArray[count] = wordSlice.toString().toAddress();
                 count++;
             } else if (wordSlice.endsWith(".eth".toSlice())) {
-                // todo: resolve ENS
-                fullSizedAddressesArray[count] = address(42);
-                count++;
+                try ensResolver.resolveENS(wordSlice.toString()) returns (address resolvedAddress) {
+                    if (resolvedAddress != address(0)) {
+                        fullSizedAddressesArray[count] = resolvedAddress;
+                        count++;
+                    }
+                } catch {}
             }
         }
         // Resize the array to the true size of valid addresses
